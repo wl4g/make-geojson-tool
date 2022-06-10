@@ -1,16 +1,20 @@
-# Update GeoData Tools
+# Make GeoJson Tools
 
 ## Directories
 
 ```txt
-├── china
-│   ├── area_cn.csv  ## Fetch metadata of China geo data from Aliyun.
-│   ├── fetch_geodata_from_aliyun.py  ## 
-│   └── legacy  ## Legacy outdated fetch scripts.
-│       ├── executor.sh  ## The concurrent executor tool implemented in pure shell.
-│       └── legacy_fetch_geodata_from_aliyun.sh  ## Pure shell implements of concurrently fetch China geodata from Alibyun (only China is supported)
-├── area_global.csv  ## Fetch metadata of global geo data from GADM.
-├── fetch_geodata_from_gadm.py  ## Fetich global geographic data from GADM.
+.
+├── convert-geojson
+    ├── convert_geojson_from_gadm.py  ## Convert to geojson from GADM shapfile zip.
+├── fetch-geodata
+    ├── china
+    │   ├── area_cn.csv  ## Fetch metadata of China geo data from Aliyun.
+    │   ├── fetch_geodata_from_aliyun.py  ## Fetich global geographic data from Aliyun.
+    │   └── legacy  ## Legacy outdated fetch scripts.
+    │       ├── executor.sh  ## The concurrent executor tool implemented in pure shell.
+    │       └── legacy_fetch_geodata_from_aliyun.sh  ## Pure shell implements of concurrently fetch China geodata from Alibyun (only China is supported)
+    ├── area_global.csv  ## Fetch metadata of global geo data from GADM.
+    ├── fetch_geodata_from_gadm.py  ## Fetich global geographic data from GADM.
 ```
 
 ## Quick start

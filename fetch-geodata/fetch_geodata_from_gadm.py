@@ -45,7 +45,7 @@ def do_fetch(base_uri, adcode, name):
     suffix = "gadm40_" + name[0:3].upper() + "_shp.zip"
     url = base_uri + suffix
     saveFilename = output_dir + suffix
-    print('Fetching for %s/%s' % (adcode, name))
+    print('Fetching for %s/%s - %s' % (adcode, name, url))
     try:
         urllib.request.urlretrieve(url, saveFilename)
     except Exception as e:
@@ -75,7 +75,7 @@ def fetch_all():
             if len(greenlets) % BATCH_TASKS == 0:
                 batchs += 1
                 print("[%d] Submit batch tasks ..." % (batchs))
-                gevent.joinall(greenlets, timeout=30)
+                gevent.joinall(greenlets, timeout=300)
 
 
 if __name__ == "__main__":
