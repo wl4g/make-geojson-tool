@@ -19,6 +19,14 @@
 
 ## Quick start
 
+- Preconditions
+
+```bash
+apt install -y nodejs
+npm install -g mapshaper
+mapshaper --help
+```
+
 - Fetch `China` geo data from Aliyun (Only supports China)
 
 ```bash
