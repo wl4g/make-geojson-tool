@@ -30,6 +30,13 @@ npm install -g mapshaper
 mapshaper --help
 ```
 
+- Building
+
+```bash
+git clone https://github.com/wl4g/make-geojson-tool
+pip install -r requirements.txt
+```
+
 - Fetch `China` geo data from Aliyun (Only supports China)
 
 ```bash
