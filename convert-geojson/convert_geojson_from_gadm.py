@@ -35,12 +35,17 @@ os.makedirs(output_dir, exist_ok=True)
 def do_convert(zip_work_dir):
     for part in os.listdir(zip_work_dir):
         filename = zip_work_dir + '/' + part  # e.g: a/b/c.txt
+
         # if part.endswith(".dbf"):  # for extract country name
         #     os.system("mapshaper -i %s" % (filename))
+
         if part.endswith(".shp"):  # for extract to genjson
-            # e.g: a/b/c.txt => c.json
+            print("Converting for '%s'" % (part))
+
+            # Join paths, e.g: a/b/c.txt => c.json
             out_geojson_file = zip_work_dir + '/genjson/' + \
                 part[0:part.rindex('.')]+'.json'  # geojson
+
             # os.system("mapshaper -i %s -proj latlon -o %s precision=0.000001" % (filename, output_filename))
             os.system("mapshaper -i %s -o %s" % (filename, out_geojson_file))
 
@@ -53,19 +58,23 @@ def convert_all():
             with zipfile.ZipFile(geodata_dir + f, 'r') as zip_ref:
                 zip_work_dir = output_dir + file_prefix
                 os.makedirs(zip_work_dir, exist_ok=True)
-                zip_ref.extractall(zip_work_dir)
+
+                # Unzip the zip file.
+                if len(os.listdir(zip_work_dir)) <= 0:
+                    print("Extractall zip for '%s'" % (file_prefix))
+                    zip_ref.extractall(zip_work_dir)
 
                 greenlets = []
                 batchs = 0
                 # for testing
-                print("add task for '%s'" % (zip_work_dir))
-                do_convert(zip_work_dir)
+                # print("add task for '%s'" % (zip_work_dir))
+                # do_convert(zip_work_dir)
 
-                # greenlets.append(gevent.spawn(do_convert, zip_work_dir))
-                # if len(greenlets) % BATCH_TASKS == 0:
-                #     batchs += 1
-                #     print("[%d] Submit batch tasks ..." % (batchs))
-                #     gevent.joinall(greenlets, timeout=120)
+                greenlets.append(gevent.spawn(do_convert, zip_work_dir))
+                if len(greenlets) % BATCH_TASKS == 0:
+                    batchs += 1
+                    print("[%d] Submit batch tasks ..." % (batchs))
+                    gevent.joinall(greenlets, timeout=120)
 
 
 if __name__ == "__main__":
