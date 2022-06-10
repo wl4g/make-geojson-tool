@@ -37,6 +37,14 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
+# Excludes shapfiles
+.dbf
+.cpg
+.prj
+.shx
+.shp
+
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
@@ -73,6 +81,8 @@ docs/_build/
 
 # PyBuilder
 target/
+convert-geojson/output/
+fetch-geodata/output/
 fetch-geodata/china/output/
 
 # Jupyter Notebook
