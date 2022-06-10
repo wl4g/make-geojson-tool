@@ -32,36 +32,41 @@ output_dir = entrypoint_dir + "/output/"
 os.makedirs(output_dir, exist_ok=True)
 
 
-def do_convert(zip_work_dir):
+def do_convert(zip_work_dir, zip_name):
     for part in os.listdir(zip_work_dir):
-        filename = zip_work_dir + '/' + part  # e.g: a/b/c.txt
+        input_filename = zip_work_dir + '/' + part  # e.g: a/b/c.txt
 
         # if part.endswith(".dbf"):  # for extract country name
-        #     os.system("mapshaper -i %s" % (filename))
+        #     os.system("mapshaper -i %s" % (input_filename))
+
+        # Join paths, e.g: a/b/c.txt => c.json
+        output_filename = output_dir + '/geojson/' + zip_name + '/' + \
+            part[0:part.rindex('.')]+'.json'  # geojson
 
         if part.endswith(".shp"):  # for extract to genjson
-            print("Converting for '%s'" % (part))
+            if not os.path.exists(output_filename):
+                print("Converting for '%s'" % (part))
 
-            # Join paths, e.g: a/b/c.txt => c.json
-            out_geojson_file = zip_work_dir + '/genjson/' + \
-                part[0:part.rindex('.')]+'.json'  # geojson
-
-            # os.system("mapshaper -i %s -proj latlon -o %s precision=0.000001" % (filename, output_filename))
-            os.system("mapshaper -i %s -o %s" % (filename, out_geojson_file))
+                os.system("mapshaper -i %s -proj latlon -o %s precision=0.000001" %
+                          (input_filename, output_filename))
+                # os.system("mapshaper -i %s -o %s" % (input_filename, output_filename))
+            else:
+                print("Skip has been converted for '%s'" % (part))
 
 
 def convert_all():
     geodata_dir = entrypoint_dir + "/../fetch-geodata/output/"
     for f in os.listdir(geodata_dir):
         if f.endswith(".zip"):
-            file_prefix = f[0:f.rindex('.')]  # e.g c.txt => c
+            # e.g gadm40_RUS_shp.zip => gadm40_RUS_shp
+            zip_name = f[0:f.rindex('.')]
             with zipfile.ZipFile(geodata_dir + f, 'r') as zip_ref:
-                zip_work_dir = output_dir + file_prefix
+                zip_work_dir = output_dir + zip_name
                 os.makedirs(zip_work_dir, exist_ok=True)
 
                 # Unzip the zip file.
                 if len(os.listdir(zip_work_dir)) <= 0:
-                    print("Extractall zip for '%s'" % (file_prefix))
+                    print("Extractall zip for '%s'" % (zip_name))
                     zip_ref.extractall(zip_work_dir)
 
                 greenlets = []
@@ -70,7 +75,8 @@ def convert_all():
                 # print("add task for '%s'" % (zip_work_dir))
                 # do_convert(zip_work_dir)
 
-                greenlets.append(gevent.spawn(do_convert, zip_work_dir))
+                greenlets.append(gevent.spawn(
+                    do_convert, zip_work_dir, zip_name))
                 if len(greenlets) % BATCH_TASKS == 0:
                     batchs += 1
                     print("[%d] Submit batch tasks ..." % (batchs))
