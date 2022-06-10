@@ -73,6 +73,7 @@ docs/_build/
 
 # PyBuilder
 target/
+fetch-geodata/china/output/
 
 # Jupyter Notebook
 .ipynb_checkpoints
