@@ -21,6 +21,7 @@ import sys
 import signal
 
 BATCH_TASKS = 3  # Add batch tasks count.
+CONVERT_PRECISION = 0.01  # Convert to geojson from *.shp precision
 
 os.environ['GEVENT_SUPPORT'] = 'True'
 monkey.patch_all()  # Required for time-consuming operations
@@ -47,8 +48,8 @@ def do_convert(zip_work_dir, zip_name):
             if not os.path.exists(output_filename):
                 print("Converting for '%s'" % (part))
 
-                os.system("mapshaper -i %s -proj latlon -o %s precision=0.000001" %
-                          (input_filename, output_filename))
+                os.system("mapshaper -i %s -proj latlon -o %s precision=%s" %
+                          (input_filename, output_filename, CONVERT_PRECISION))
                 # os.system("mapshaper -i %s -o %s" % (input_filename, output_filename))
             else:
                 print("Skip has been converted for '%s'" % (part))
