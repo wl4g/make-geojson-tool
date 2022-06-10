@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import urllib.request
 from gevent import monkey
 import gevent
@@ -41,18 +42,23 @@ output_dir = entrypoint_dir + "/output/"
 os.makedirs(output_dir, exist_ok=True)
 
 
-def do_fetch(base_uri, adcode, name):
-    suffix = "gadm40_" + name[0:3].upper() + "_shp.zip"
-    url = base_uri + suffix
+def do_fetch(gadmCountrySelectOptionValue, gadmCountrySelectOptionName):
+    # see:view-source:https://gadm.org/download_country.html#L311
+    suffix = "gadm40_" + \
+        gadmCountrySelectOptionValue.split('_')[0] + "_shp.zip"
+    url = GEO_BASE_URI + suffix
     saveFilename = output_dir + suffix
-    print('Fetching for %s/%s - %s' % (adcode, name, url))
+    print('Fetching for %s - %s' % (gadmCountrySelectOptionName, url))
     try:
         urllib.request.urlretrieve(url, saveFilename)
     except Exception as e:
         print("Failed to fetch for %s. reason: %s" % (suffix, e))
         with open(saveFilename + ".err", "w", encoding="utf-8") as geofile:
-            geofile.write(
-                "ERROR: Failed to fetch for %s, caused by: %s" % (url, e))
+            errjson = {
+                "url": url,
+                "errmsg": ("ERROR: Failed to fetch for %s, caused by: %s" % (url, e))
+            }
+            geofile.write(json.dumps(errjson))
             geofile.close
 
 
@@ -63,19 +69,19 @@ def fetch_all():
         reader = csv.reader(csvfile)
         headers = next(reader)
         for row in reader:
-            adcode = row[0]
-            name = row[1]
+            gadmCountrySelectOptionValue = row[0]
+            gadmCountrySelectOptionName = row[1]
 
             # for testing
             # print("add task for '%s/%s'" % (adcode, name))
-            # do_fetch(GEO_BASE_URI, adcode, name)
+            do_fetch(gadmCountrySelectOptionValue, gadmCountrySelectOptionName)
 
-            greenlets.append(gevent.spawn(
-                do_fetch, GEO_BASE_URI, adcode, name))
-            if len(greenlets) % BATCH_TASKS == 0:
-                batchs += 1
-                print("[%d] Submit batch tasks ..." % (batchs))
-                gevent.joinall(greenlets, timeout=300)
+            # greenlets.append(gevent.spawn(
+            #     do_fetch, gadmCountrySelectOptionValue, gadmCountrySelectOptionName))
+            # if len(greenlets) % BATCH_TASKS == 0:
+            #     batchs += 1
+            #     print("[%d] Submit batch tasks ..." % (batchs))
+            #     gevent.joinall(greenlets, timeout=300)
 
 
 if __name__ == "__main__":
