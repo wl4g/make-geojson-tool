@@ -4,10 +4,10 @@
 
 ```txt
 .
-├── convert-geojson
+├── converter
     ├── output ## Converted output assets directory. (Auto-Generate)
     ├── convert_geojson_from_gadm.py  ## Convert to geojson from GADM shapfile zip.
-├── fetch-geodata
+├── fetcher
     ├── output ## Fetched output assets directory. (Auto-Generate)
     ├── china
     │   ├── area_cn.csv  ## Fetch metadata of China geo data from Aliyun.
