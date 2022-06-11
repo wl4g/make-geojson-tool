@@ -41,10 +41,23 @@ pip install -r requirements.txt
 
 ```bash
 ./fetcher/china/fetch_geodata_from_aliyun.py
+
+## output: ./fetcher/china/output/
 ```
 
 - Fetch `Any Countries` geo data from GADM (Supports Global), but the latest version may only support the [shapefile](https://gadm.org/formats.html) format, and you need to use tools such as [mapshaper](https://github.com/mbloch/mapshaper) to convert to [geojson](https://gadm.org/formats.html) format.
 
 ```bash
 ./fetcher/fetch_geodata_from_gadm.py
+
+## output: ./fetcher/output/
+```
+
+- Convert to [geojson](https://gadm.org/formats.html) format.
+
+```bash
+./converter/convert_geojson_from_gadm.py
+
+## input: ./fetcher/output/
+## output: ./converter/output/geojson/
 ```
