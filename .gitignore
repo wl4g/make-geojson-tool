@@ -71,6 +71,7 @@ db.sqlite3-journal
 
 # Flask stuff:
 instance/
+log/
 .webassets-cache
 
 # Scrapy stuff:
@@ -81,9 +82,7 @@ docs/_build/
 
 # PyBuilder
 target/
-convert-geojson/output/
-fetch-geodata/output/
-fetch-geodata/china/output/
+**/output/
 
 # Jupyter Notebook
 .ipynb_checkpoints

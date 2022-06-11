@@ -22,6 +22,8 @@ import csv
 import os
 import sys
 import signal
+import logging
+
 
 # see:https://gadm.org/download_country_v3.html
 # see:https://gadm.org/download_country.html
@@ -33,13 +35,24 @@ GEO_BASE_URI = "https://geodata.ucdavis.edu/gadm/gadm4.0/shp/"
 BATCH_TASKS = 10  # Add batch tasks count.
 
 os.environ['GEVENT_SUPPORT'] = 'True'
-monkey.patch_all()  # Required for time-consuming operations
 
 # current_dir = os.getcwd()
 entrypoint_dir, entrypoint_file = os.path.split(
     os.path.abspath(sys.argv[0]))
+
 output_dir = entrypoint_dir + "/output/"
 os.makedirs(output_dir, exist_ok=True)
+
+log_dir = entrypoint_dir + "/../log"
+os.makedirs(log_dir, exist_ok=True)
+log_file = log_dir + '/fetcher.log'
+
+# see:https://docs.python.org/3/howto/logging.html#logging-to-a-file
+logging.basicConfig(filename=log_file, filemode='w',
+                    format='%(asctime)s [%(levelname)7s] %(threadName)s %(filename)s:%(lineno)s - %(message)s',
+                    datefmt='%Y-%m-%d %l:%M:%S', level=logging.INFO)
+
+monkey.patch_all()  # Required for time-consuming operations
 
 
 def do_fetch(gadmCountrySelectOptionValue, gadmCountrySelectOptionName):
@@ -48,11 +61,11 @@ def do_fetch(gadmCountrySelectOptionValue, gadmCountrySelectOptionName):
         gadmCountrySelectOptionValue.split('_')[0] + "_shp.zip"
     url = GEO_BASE_URI + suffix
     saveFilename = output_dir + suffix
-    print('Fetching for %s - %s' % (gadmCountrySelectOptionName, url))
+    logging.info('Fetching for %s - %s' % (gadmCountrySelectOptionName, url))
     try:
         urllib.request.urlretrieve(url, saveFilename)
     except Exception as e:
-        print("Failed to fetch for %s. reason: %s" % (suffix, e))
+        logging.error("Failed to fetch for %s. reason: %s" % (suffix, e))
         with open(saveFilename + ".err", "w", encoding="utf-8") as geofile:
             errjson = {
                 "url": url,
@@ -71,24 +84,26 @@ def fetch_all():
         for row in reader:
             gadmCountrySelectOptionValue = row[0]
             gadmCountrySelectOptionName = row[1]
+            logging.debug("add task for '%s/%s'" %
+                          (gadmCountrySelectOptionValue, gadmCountrySelectOptionName))
 
             # for testing
-            # print("add task for '%s/%s'" % (adcode, name))
-            do_fetch(gadmCountrySelectOptionValue, gadmCountrySelectOptionName)
+            # do_fetch(gadmCountrySelectOptionValue, gadmCountrySelectOptionName)
 
-            # greenlets.append(gevent.spawn(
-            #     do_fetch, gadmCountrySelectOptionValue, gadmCountrySelectOptionName))
-            # if len(greenlets) % BATCH_TASKS == 0:
-            #     batchs += 1
-            #     print("[%d] Submit batch tasks ..." % (batchs))
-            #     gevent.joinall(greenlets, timeout=300)
+            greenlets.append(gevent.spawn(
+                do_fetch, gadmCountrySelectOptionValue, gadmCountrySelectOptionName))
+            if len(greenlets) % BATCH_TASKS == 0:
+                batchs += 1
+                logging.info("[%d] Submit batch tasks ..." % (batchs))
+                gevent.joinall(greenlets, timeout=300)
 
 
 if __name__ == "__main__":
-    print('Starting GADM GeoData Fetcher ...')
+    # see:https://docs.python.org/zh-cn/3/library/functions.html#print
+    print('Starting GADM GeoData Fetcher ...', flush=True)
+    print(('Log See: %s' % (log_file)), flush=True)
     try:
-        os.nice(5)
         fetch_all()
     except KeyboardInterrupt:
-        print("Cancel fetch tasks ...")
-        # gevent.killall()
+        logging.warning("Cancel fetch tasks ...")
+        gevent.killall(timeout=3)
