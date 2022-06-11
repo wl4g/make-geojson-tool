@@ -42,6 +42,7 @@ pip install -r requirements.txt
 ```bash
 ./fetcher/china/fetch_geodata_from_aliyun.py
 
+##    log:  ./log/fetcher_aliyun.log
 ## output: ./fetcher/china/output/
 ```
 
@@ -50,7 +51,8 @@ pip install -r requirements.txt
 ```bash
 ./fetcher/fetch_geodata_from_gadm.py
 
-## output: ./fetcher/output/
+##    log:  ./log/fetcher.log
+## output:  ./fetcher/output/
 ```
 
 - Convert to [geojson](https://gadm.org/formats.html) format.
@@ -58,6 +60,7 @@ pip install -r requirements.txt
 ```bash
 ./converter/convert_geojson_from_gadm.py
 
-## input: ./fetcher/output/
-## output: ./converter/output/geojson/
+##  input:  ./fetcher/output/
+##    log:  ./log/converter.log
+## output:  ./converter/output/geojson/
 ```

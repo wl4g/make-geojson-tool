@@ -42,6 +42,7 @@ log_file = log_dir + '/converter.log'
 logging.basicConfig(filename=log_file, filemode='w',
                     format='%(asctime)s [%(levelname)7s] %(threadName)s %(filename)s:%(lineno)s - %(message)s',
                     datefmt='%Y-%m-%d %l:%M:%S', level=logging.INFO)
+logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 monkey.patch_all()  # Required for time-consuming operations
 # all_greenlets = []

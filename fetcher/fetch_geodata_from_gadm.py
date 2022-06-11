@@ -51,6 +51,7 @@ log_file = log_dir + '/fetcher.log'
 logging.basicConfig(filename=log_file, filemode='w',
                     format='%(asctime)s [%(levelname)7s] %(threadName)s %(filename)s:%(lineno)s - %(message)s',
                     datefmt='%Y-%m-%d %l:%M:%S', level=logging.INFO)
+logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 monkey.patch_all()  # Required for time-consuming operations
 
@@ -98,12 +99,26 @@ def fetch_all():
                 gevent.joinall(greenlets, timeout=300)
 
 
+def statistics():
+    success = 0
+    failure = 0
+    for f in os.listdir(output_dir):
+        if f.endswith(".err"):
+            failure += 1
+        else:
+            success += 1
+    logging.info("-----------------------------------------------")
+    logging.info("FETCHED Completed of SUCCESS: %d / FAILURE: %d" % (success, failure))
+    logging.info("-----------------------------------------------")
+
+
 if __name__ == "__main__":
     # see:https://docs.python.org/zh-cn/3/library/functions.html#print
     print('Starting GADM GeoData Fetcher ...', flush=True)
     print(('Log See: %s' % (log_file)), flush=True)
     try:
-        fetch_all()
+        # fetch_all()
+        statistics()
     except KeyboardInterrupt:
         logging.warning("Cancel fetch tasks ...")
         gevent.killall(timeout=3)

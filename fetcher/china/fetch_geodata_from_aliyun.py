@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess
 import json
 import random
 import time
@@ -26,6 +25,7 @@ import os
 import sys
 import signal
 import os
+import logging
 import sys
 
 
@@ -40,16 +40,26 @@ INIT_DELAY = 3  # Initial delay seconds.
 MAX_RETRIES = 3  # Max attempts with 403
 BATCH_TASKS = 50  # Add batch tasks count.
 
-
 os.environ['GEVENT_SUPPORT'] = 'True'
-monkey.patch_all()  # Required for time-consuming operations
-
 
 # current_dir = os.getcwd()
 entrypoint_dir, entrypoint_file = os.path.split(
     os.path.abspath(sys.argv[0]))
+
 output_dir = entrypoint_dir + "/output/"
 os.makedirs(output_dir, exist_ok=True)
+
+log_dir = entrypoint_dir + "/../../log"
+os.makedirs(log_dir, exist_ok=True)
+log_file = log_dir + '/fetcher_aliyun.log'
+
+# see:https://docs.python.org/3/howto/logging.html#logging-to-a-file
+logging.basicConfig(filename=log_file, filemode='w',
+                    format='%(asctime)s [%(levelname)7s] %(threadName)s %(filename)s:%(lineno)s - %(message)s',
+                    datefmt='%Y-%m-%d %l:%M:%S', level=logging.INFO)
+logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+
+monkey.patch_all()  # Required for time-consuming operations
 
 
 def do_fetch(url, outputFile, adcode, name, level):
@@ -80,7 +90,7 @@ def do_retries_fetch(adcode, name, level):
             retries += 1
             backoff = random.random() * INIT_DELAY * retries
             time.sleep(backoff)  # Prevent request limiting.
-            print("Fetching of delay %ds for %s/%s/%s ..." %
+            logging.info("Fetching of delay %ds for %s/%s/%s ..." %
                   (backoff, adcode, name, level))
             resp = do_fetch(url, outputFile, adcode, name, level)
             if resp.status == 200:
@@ -88,7 +98,7 @@ def do_retries_fetch(adcode, name, level):
             elif resp.status == 403:  # Has been limiting?
                 time.sleep(backoff)
     except Exception as e:
-        print("Failed to fetch for %s/%s. reason: %s" % (name, suffix, e))
+        logging.info("Failed to fetch for %s/%s. reason: %s" % (name, suffix, e))
         with open(outputFile + ".err", "w", encoding="utf-8") as geofile:
             errjson = {
                 "adcode": adcode,
@@ -103,7 +113,7 @@ def do_retries_fetch(adcode, name, level):
 def fetch_all():
     files = os.listdir(output_dir)
     if len(files) <= 0:
-        print("Full new fetching ...")
+        logging.info("Full new fetching ...")
         with open(entrypoint_dir + "/area_cn.csv", "r", encoding="utf-8") as csvfile:
             greenlets = []
             batchs = 0
@@ -116,7 +126,7 @@ def fetch_all():
                 level = row[3]
 
                 # for testing.
-                # print("add task for '%s/%s/%s/%s'" % (adcode, parent, name, level))
+                # logging.info("add task for '%s/%s/%s/%s'" % (adcode, parent, name, level))
                 # do_retries_fetch(adcode, name, level)
 
                 if int(level) <= FOR_LEVEL_LE:
@@ -124,10 +134,10 @@ def fetch_all():
                         do_retries_fetch, adcode, name, level))
                 if len(greenlets) % BATCH_TASKS == 0:
                     batchs += 1
-                    print("[%d] Submit batch tasks ..." % (batchs))
+                    logging.info("[%d] Submit batch tasks ..." % (batchs))
                     gevent.joinall(greenlets, timeout=30)
     else:
-        print("Continue last uncompleted or failed fetch tasks from '%s'" %
+        logging.info("Continue last uncompleted or failed fetch tasks from '%s'" %
               (output_dir))
         greenlets = []
         batchs = 0
@@ -148,7 +158,7 @@ def fetch_all():
                 level = errjson['level']
 
                 # for testing.
-                # print("add task for '%s/%s/%s/%s'" % (adcode, parent, name, level))
+                # logging.info("add task for '%s/%s/%s/%s'" % (adcode, parent, name, level))
                 # do_retries_fetch(adcode, name, level)
 
                 # Continue add batch fetch tasks.
@@ -156,7 +166,7 @@ def fetch_all():
                     do_retries_fetch, adcode, name, level))
                 if len(greenlets) % BATCH_TASKS == 0:
                     batchs += 1
-                    print("[%d] Submit batch tasks ..." % (batchs))
+                    logging.info("[%d] Submit batch tasks ..." % (batchs))
                     gevent.joinall(greenlets, timeout=30)
                 # Remove older err json file.
                 os.remove(errfileStr)
@@ -170,17 +180,18 @@ def statistics():
             failure += 1
         else:
             success += 1
-    print("-----------------------------------------------")
-    print("FETCHED Completed of SUCCESS: %d / FAILURE: %d" % (success, failure))
-    print("-----------------------------------------------")
+    logging.info("-----------------------------------------------")
+    logging.info("FETCHED Completed of SUCCESS: %d / FAILURE: %d" % (success, failure))
+    logging.info("-----------------------------------------------")
 
 
 if __name__ == "__main__":
-    print('Starting Aliyun GeoData Fetcher ...')
+    # see:https://docs.python.org/zh-cn/3/library/functions.html#print
+    print('Starting Aliyun GeoData Fetcher ...', flush=True)
+    print(('Log See: %s' % (log_file)), flush=True)
     try:
-        os.nice(5)
         fetch_all()
         statistics()
     except KeyboardInterrupt:
-        print("Cancel fetch tasks ...")
+        logging.info("Cancel fetch tasks ...")
         # gevent.killall()
