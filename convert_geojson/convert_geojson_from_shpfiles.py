@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import logging
-import time
 import zipfile
 from gevent import monkey
 import gevent
@@ -31,12 +30,12 @@ os.environ['GEVENT_SUPPORT'] = 'True'
 entrypoint_dir, entrypoint_file = os.path.split(
     os.path.abspath(sys.argv[0]))
 
-output_dir = entrypoint_dir + "/output/"
+output_dir = entrypoint_dir + "/output"
 os.makedirs(output_dir, exist_ok=True)
 
 log_dir = entrypoint_dir + "/../log"
 os.makedirs(log_dir, exist_ok=True)
-log_file = log_dir + '/converter.log'
+log_file = log_dir + '/convert_geojson_from_shpfiles.log'
 
 # see:https://docs.python.org/3/howto/logging.html#logging-to-a-file
 logging.basicConfig(filename=log_file, filemode='w',
@@ -59,36 +58,42 @@ monkey.patch_all()  # Required for time-consuming operations
 
 def do_convert(zip_work_dir, zip_name):
     for part in os.listdir(zip_work_dir):
-        input_filename = zip_work_dir + '/' + part  # e.g: a/b/c.txt
+        input_file = zip_work_dir + '/' + part  # e.g: a/b/c.txt
 
         # if part.endswith(".dbf"):  # for extract country name
-        #     os.system("mapshaper -i %s" % (input_filename))
+        #     os.system("mapshaper -i %s" % (input_file))
 
-        # Join paths, e.g: a/b/c.txt => c.json
-        output_filename = output_dir + '/geojson/' + zip_name + '/' + \
-            part[0:part.rindex('.')]+'.json'  # geojson
+        # e.g: gadm40_CHN_0.shx => gadm40_CHN_0
+        geojson_file = part[0:part.rindex('.')]
+        # e.g: gadm40_CHN_0 => CHN_0
+        geojson_file = geojson_file[geojson_file.index('_')+1:]
+
+        # e.g: '..../convert_geojson/geojson/output/json/CHN/CHN_0.json'
+        output_file = output_dir + '/json/' + \
+            geojson_file[0:geojson_file.rindex(
+                '_')] + '/' + geojson_file+'.json'
 
         if part.endswith(".shp"):  # for extract to genjson
-            if not os.path.exists(output_filename):
+            if os.path.exists(output_file):
+                logging.warning("Skip converted of '%s'" % (part))
+            else:
                 logging.info("Converting for '%s'" % (part))
 
                 os.system("mapshaper -i %s -proj latlon -o %s precision=%s" %
-                          (input_filename, output_filename, CONVERT_PRECISION))
-                # os.system("mapshaper -i %s -o %s" % (input_filename, output_filename))
-            else:
-                logging.warning("Skip converted of '%s'" % (part))
+                          (input_file, output_file, CONVERT_PRECISION))
+                # os.system("mapshaper -i %s -o %s" % (input_file, output_file))
 
 
 def convert_all():
-    geodata_dir = entrypoint_dir + "/../fetcher/output/"
-    for f in os.listdir(geodata_dir):
+    zip_shpfiles_dir = entrypoint_dir + "/../fetch_gadm/output/"
+    for f in os.listdir(zip_shpfiles_dir):
         if f.endswith(".zip"):
             # e.g gadm40_RUS_shp.zip => gadm40_RUS_shp
             zip_name = f[0:f.rindex('.')]
-            zip_filename = geodata_dir + f
+            zip_filename = zip_shpfiles_dir + f
             try:
                 with zipfile.ZipFile(zip_filename, 'r') as zip_file:
-                    zip_work_dir = output_dir + zip_name
+                    zip_work_dir = output_dir + "/.tmp-shpfiles/" + zip_name
                     os.makedirs(zip_work_dir, exist_ok=True)
 
                     # Unzip the zip file.

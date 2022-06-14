@@ -51,7 +51,7 @@ os.makedirs(output_dir, exist_ok=True)
 
 log_dir = entrypoint_dir + "/../../log"
 os.makedirs(log_dir, exist_ok=True)
-log_file = log_dir + '/fetcher_aliyun.log'
+log_file = log_dir + '/fetch_geojson_from_aliyun.log'
 
 # see:https://docs.python.org/3/howto/logging.html#logging-to-a-file
 logging.basicConfig(filename=log_file, filemode='w',
@@ -72,7 +72,7 @@ def do_fetch(url, outputFile, adcode, name, level):
         data = resp.read()
         with open(outputFile, "w", encoding="utf-8") as geofile:
             geofile.write(data.decode('UTF-8'))
-            geofile.close
+            # geofile.close
     else:
         raise RuntimeError("Response status %s is invalid" % resp.status)
     return resp
@@ -91,14 +91,15 @@ def do_retries_fetch(adcode, name, level):
             backoff = random.random() * INIT_DELAY * retries
             time.sleep(backoff)  # Prevent request limiting.
             logging.info("Fetching of delay %ds for %s/%s/%s ..." %
-                  (backoff, adcode, name, level))
+                         (backoff, adcode, name, level))
             resp = do_fetch(url, outputFile, adcode, name, level)
             if resp.status == 200:
                 break
             elif resp.status == 403:  # Has been limiting?
                 time.sleep(backoff)
     except Exception as e:
-        logging.info("Failed to fetch for %s/%s. reason: %s" % (name, suffix, e))
+        logging.info("Failed to fetch for %s/%s. reason: %s" %
+                     (name, suffix, e))
         with open(outputFile + ".err", "w", encoding="utf-8") as geofile:
             errjson = {
                 "adcode": adcode,
@@ -107,14 +108,14 @@ def do_retries_fetch(adcode, name, level):
                 "errmsg": ("ERROR: Failed to fetch for %s, caused by: %s" % (url, e))
             }
             geofile.write(json.dumps(errjson))
-            geofile.close
+            # geofile.close
 
 
 def fetch_all():
     files = os.listdir(output_dir)
     if len(files) <= 0:
         logging.info("Full new fetching ...")
-        with open(entrypoint_dir + "/area_cn.csv", "r", encoding="utf-8") as csvfile:
+        with open(entrypoint_dir + "/input/area_cn.csv", "r", encoding="utf-8") as csvfile:
             greenlets = []
             batchs = 0
             reader = csv.reader(csvfile)
@@ -138,7 +139,7 @@ def fetch_all():
                     gevent.joinall(greenlets, timeout=30)
     else:
         logging.info("Continue last uncompleted or failed fetch tasks from '%s'" %
-              (output_dir))
+                     (output_dir))
         greenlets = []
         batchs = 0
         for f in files:
@@ -181,7 +182,8 @@ def statistics():
         else:
             success += 1
     logging.info("-----------------------------------------------")
-    logging.info("FETCHED Completed of SUCCESS: %d / FAILURE: %d" % (success, failure))
+    logging.info("FETCHED Completed of SUCCESS: %d / FAILURE: %d" %
+                 (success, failure))
     logging.info("-----------------------------------------------")
 
 

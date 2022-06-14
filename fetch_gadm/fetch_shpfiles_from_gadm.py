@@ -45,7 +45,7 @@ os.makedirs(output_dir, exist_ok=True)
 
 log_dir = entrypoint_dir + "/../log"
 os.makedirs(log_dir, exist_ok=True)
-log_file = log_dir + '/fetcher.log'
+log_file = log_dir + '/fetch_shpfiles_from_gadm.log'
 
 # see:https://docs.python.org/3/howto/logging.html#logging-to-a-file
 logging.basicConfig(filename=log_file, filemode='w',
@@ -77,7 +77,7 @@ def do_fetch(gadmCountrySelectOptionValue, gadmCountrySelectOptionName):
 
 
 def fetch_all():
-    with open(entrypoint_dir + "/area_global.csv", "r", encoding="utf-8") as csvfile:
+    with open(entrypoint_dir + "/input/area_global.csv", "r", encoding="utf-8") as csvfile:
         greenlets = []
         batchs = 0
         reader = csv.reader(csvfile)
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     print('Starting GADM GeoData Fetcher ...', flush=True)
     print(('Log See: %s' % (log_file)), flush=True)
     try:
-        # fetch_all()
+        fetch_all()
         statistics()
     except KeyboardInterrupt:
         logging.warning("Cancel fetch tasks ...")
