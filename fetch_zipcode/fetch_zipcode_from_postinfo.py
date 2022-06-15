@@ -18,8 +18,8 @@ import urllib.request
 from bs4 import BeautifulSoup
 from gevent import monkey
 import gevent
-from re import S
 import random
+import re
 import time
 import os
 import sys
@@ -69,11 +69,7 @@ def do_fetch(url):
 
 
 def do_parse(zipcode_page_url, country_short, country_long, region):
-    output_file = output_dir + country_short + ".csv"
-    if os.path.exists(output_file):
-        logging.warning("Skip fetched of '%s'" % (output_file))
-        return
-
+    output_file = output_file = get_output_file(country_short, country_long)
     bsObj = do_fetch(zipcode_page_url)
     try:
         container = bsObj.find("div", {"class": "container"})
@@ -101,8 +97,16 @@ def do_parse(zipcode_page_url, country_short, country_long, region):
             geofile.close
 
 
+def get_output_file(country_short, country_long):
+    return output_dir + country_short + ".csv"
+
+
 def fetch_country_hierarchy(domain_uri, country_short, country_long):
     bsObj = do_fetch(domain_uri)
+    output_file = get_output_file(country_short, country_long)
+    if os.path.exists(output_file):
+        logging.warning("Skip fetched of '%s'" % (output_file))
+        return
     try:
         a_arr = bsObj.find("div", {"class": "cnt"}).find_all("a")
         for a in a_arr:
@@ -119,10 +123,10 @@ def fetch_country_hierarchy(domain_uri, country_short, country_long):
                     for td in td_arr:
                         # expect e.g:http://china.postcode.info/anhui/aiguo-township
                         zipcode_page_url = group_url + \
-                            td.find("a").attrs['href']
+                            '/' + td.find("a").attrs['href']
                         do_parse(zipcode_page_url, country_short,
                                  country_long, region)
-                        time.sleep(random.random()*5)
+                        time.sleep(random.random()*10)
 
             else:  # page e.g:http://china.postcode.info/
                 div_letterbutton = div_cnt.find(
@@ -142,7 +146,7 @@ def fetch_country_hierarchy(domain_uri, country_short, country_long):
                                 '/' + td.find("a").attrs['href']
                             do_parse(zipcode_page_url, country_short,
                                      country_long, region)
-                            time.sleep(random.random()*5)
+                            time.sleep(random.random()*10)
 
     except AttributeError as ex:
         logging.error("Failed to fetch parse page for %s. reason: %s" %
@@ -150,8 +154,9 @@ def fetch_country_hierarchy(domain_uri, country_short, country_long):
 
 
 def fetch_all():
-    files = os.listdir(output_dir)
-    if len(files) <= 0:
+    err_files = [f for f in os.listdir(
+        '.') if re.match(r'[a-zA-Z0-9]+.*\.err', f)]
+    if len(err_files) <= 0:
         logging.info("Full new fetching ...")
         bsObj = do_fetch("http://postcode.info")
         try:
@@ -175,19 +180,19 @@ def fetch_all():
                         domain_url = a.attrs['href']
 
                         # for testing
-                        if country_short == "CN":
-                            logging.info("%s/%s: %s", country_short,
-                                         country_long, domain_url)
-                            fetch_country_hierarchy(
-                                domain_url, country_short, country_long)
+                        # if country_short == "AD":
+                        #     logging.info("%s/%s: %s", country_short,
+                        #                  country_long, domain_url)
+                        #     fetch_country_hierarchy(
+                        #         domain_url, country_short, country_long)
 
-                        # greenlets.append(gevent.spawn(
-                        #     fetch_country_hierarchy, domain_url, country_short, country_long))
-                        # if len(greenlets) % BATCH_TASKS == 0:
-                        #     batchs += 1
-                        #     logging.info(
-                        #         "[%d] Submit batch tasks ..." % (batchs))
-                        #     gevent.joinall(greenlets, timeout=300)
+                        greenlets.append(gevent.spawn(
+                            fetch_country_hierarchy, domain_url, country_short, country_long))
+                        if len(greenlets) % BATCH_TASKS == 0:
+                            batchs += 1
+                            logging.info(
+                                "[%d] Submit batch tasks ..." % (batchs))
+                            gevent.joinall(greenlets, timeout=300)
 
         except AttributeError as ex:
             print("page has lost some attributes, but don't worry!", ex)
@@ -196,34 +201,33 @@ def fetch_all():
                      (output_dir))
         greenlets = []
         batchs = 0
-        for f in files:
-            if f.endswith(".err"):
-                errjsonStr = ""
-                errfileStr = output_dir + "/" + f
-                with open(errfileStr, "r", encoding="utf-8") as errfile:
-                    while True:
-                        line = errfile.readline(1024)
-                        if len(line) <= 0:
-                            break
-                        errjsonStr += line
+        for f in err_files:
+            errjsonStr = ""
+            errfileStr = output_dir + "/" + f
+            with open(errfileStr, "r", encoding="utf-8") as errfile:
+                while True:
+                    line = errfile.readline(1024)
+                    if len(line) <= 0:
+                        break
+                    errjsonStr += line
 
-                errjson = json.loads(errjsonStr)
-                url = errjson['url']
-                country_short = errjson['country_short']
-                country_long = errjson['country_long']
-                region = errjson['region']
-                # errmsg = errjson['errmsg']
+            errjson = json.loads(errjsonStr)
+            url = errjson['url']
+            country_short = errjson['country_short']
+            country_long = errjson['country_long']
+            region = errjson['region']
+            # errmsg = errjson['errmsg']
 
-                # Continue add batch fetch tasks.
-                greenlets.append(gevent.spawn(
-                    do_parse, url, country_short, country_long, region))
-                if len(greenlets) % BATCH_TASKS == 0:
-                    batchs += 1
-                    logging.info(
-                        "[%d] Submit batch tasks ..." % (batchs))
-                    gevent.joinall(greenlets, timeout=300)
-                # Remove older err json file.
-                os.remove(errfileStr)
+            # Continue add batch fetch tasks.
+            greenlets.append(gevent.spawn(
+                do_parse, url, country_short, country_long, region))
+            if len(greenlets) % BATCH_TASKS == 0:
+                batchs += 1
+                logging.info(
+                    "[%d] Submit batch tasks ..." % (batchs))
+                gevent.joinall(greenlets, timeout=300)
+            # Remove older err json file.
+            os.remove(errfileStr)
 
 
 def statistics():
