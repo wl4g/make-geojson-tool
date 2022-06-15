@@ -3,8 +3,8 @@
 # The http dependency.
 requests==2.22.0
 #curlify==2.2.1
-beautifulsoup=4-4.11.1
-bs4=0.0.1
+beautifulsoup4==4.11.1
+bs4==0.0.1
 
 # The gevent dependency.
 gevent==21.12.0
