@@ -126,7 +126,7 @@ def fetch_country_hierarchy(domain_uri, country_short, country_long):
                             '/' + td.find("a").attrs['href']
                         do_parse(zipcode_page_url, country_short,
                                  country_long, region)
-                        time.sleep(random.random()*10)
+                        time.sleep(random.random()*5)
 
             else:  # page e.g:http://china.postcode.info/
                 div_letterbutton = div_cnt.find(
@@ -146,7 +146,7 @@ def fetch_country_hierarchy(domain_uri, country_short, country_long):
                                 '/' + td.find("a").attrs['href']
                             do_parse(zipcode_page_url, country_short,
                                      country_long, region)
-                            time.sleep(random.random()*10)
+                            time.sleep(random.random()*5)
 
     except AttributeError as ex:
         logging.error("Failed to fetch parse page for %s. reason: %s" %
